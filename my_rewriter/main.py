@@ -35,7 +35,7 @@ if __name__ == '__main__':
                        workload_path=args.workload_path, result_log_path=args.result_log_path, output_path=args.output_path,
                        workload_output=args.workload_output, dbms=args.dbms, dataset_name=args.database)
 
-    from my_rewriter.config import _workload
+    from config_baseline import _workload
 
     model_args = init_llms(args.llm_model)
     pg_config = init_db_config(args.database)
