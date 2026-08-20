@@ -1,6 +1,10 @@
 import sqlglot
 from sqlglot import exp
-from sqlglot.optimizer.simplify import NONDETERMINISTIC
+try:
+    from sqlglot.optimizer.simplify import NONDETERMINISTIC
+except ImportError:
+    from sqlglot.optimizer.simplify import Simplifier
+    NONDETERMINISTIC = Simplifier.NONDETERMINISTIC
 
 def can_be_optimized_by_non_deterministic_function(sql_query, table_schema=None, indexes=None, dialect=None):
     """

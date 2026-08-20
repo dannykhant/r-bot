@@ -3,7 +3,11 @@ import sqlglot
 import sqlglot.expressions as exp
 import typing as t
 from collections import defaultdict, deque
-from sqlglot.optimizer.simplify import NONDETERMINISTIC
+try:
+    from sqlglot.optimizer.simplify import NONDETERMINISTIC
+except ImportError:
+    from sqlglot.optimizer.simplify import Simplifier
+    NONDETERMINISTIC = Simplifier.NONDETERMINISTIC
 from sqlglot.optimizer.qualify import qualify
 
 MIRROR_MAP = {exp.GT: exp.LT, exp.GTE: exp.LTE}
