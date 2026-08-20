@@ -4,6 +4,10 @@ llama-index-vector-stores-chroma
 jsonlines
 jpype1
 sqlglot
-psycopg2
+psycopg2-binary
 prettytable
 scipy
+llama-index-embeddings-huggingface
+llama-index-llms-openai-like
+llama-index-llms-gemini
+llama-index-llms-groq
