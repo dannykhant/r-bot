@@ -46,7 +46,9 @@ if __name__ == '__main__':
     REWRITE_ROUNDS = 1
 
     pg_args = DBArgs(pg_config)
-    schema_path = os.path.join('../schemas', f"{args.database}.sql")
+    schema_path = os.path.join(args.workload_path, 'schema.sql')
+    if not os.path.exists(schema_path):
+        schema_path = os.path.join('../schemas', f"{args.database}.sql")
     schema = open(schema_path, 'r').read()
 
     docstore = init_docstore()
