@@ -4,7 +4,7 @@ from scipy import stats
 import json
 import os
 
-from my_rewriter.config import CACHE_PATH
+import my_rewriter.config as config
 from my_rewriter.database import Database, DBArgs
 from my_rewriter.rewrite import rewrite
 
@@ -42,7 +42,7 @@ def actual_time(sql: str, db_args: DBArgs, timeout: int) -> t.Tuple[float, t.Lis
         sorted_times = sorted(times)
         actual_time = sum(sorted_times[1:-1]) / 3
         db_args.cache[sql] = {'time': actual_time, 'times': times}
-        with open(os.path.join(CACHE_PATH, f'{db_args.dbname}.jsonl'), 'a') as f:
+        with open(os.path.join(config.CACHE_PATH, f'{db_args.dbname}.jsonl'), 'a') as f:
             f.write(json.dumps({'sql': sql, 'time': actual_time, 'times': times}) + '\n')
     return db_args.cache[sql]['time'], db_args.cache[sql]['times']
 
@@ -53,6 +53,6 @@ def actual_time_once(sql: str, db_args: DBArgs, timeout: int) -> float:
         if latency == -1:
             return float("inf")
         db_args.cache[sql] = {'time': latency}
-        with open(os.path.join(CACHE_PATH, f'{db_args.dbname}.jsonl'), 'a') as f:
+        with open(os.path.join(config.CACHE_PATH, f'{db_args.dbname}.jsonl'), 'a') as f:
             f.write(json.dumps({'sql': sql, 'time': latency}) + '\n')
     return db_args.cache[sql]['time']

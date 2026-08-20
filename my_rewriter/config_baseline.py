@@ -135,6 +135,8 @@ def load_config_system(system_log: str,
 
     _system_log_file = system_log
     CACHE_PATH = CA_PATH
+    import my_rewriter.config as config
+    config.CACHE_PATH = CA_PATH
     with open(config_path, "r") as f:
         try:
             configs = yaml.load(f, Loader=yaml.FullLoader)

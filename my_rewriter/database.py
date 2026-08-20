@@ -4,7 +4,7 @@ import logging
 import typing as t
 import os
 
-from my_rewriter.config import CACHE_PATH
+import my_rewriter.config as config
 
 class DBArgs(object):
 
@@ -22,7 +22,7 @@ class DBArgs(object):
             raise NotImplementedError
 
         self.cache = {}
-        with open(os.path.join(CACHE_PATH, f'{self.dbname}.jsonl'), 'r') as f:
+        with open(os.path.join(config.CACHE_PATH, f'{self.dbname}.jsonl'), 'r') as f:
             for line in f:
                 obj = json.loads(line)
                 self.cache[obj['sql']] = obj
