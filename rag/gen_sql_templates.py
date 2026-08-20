@@ -147,6 +147,13 @@ def has_no_star(node: exp.Expression) -> bool:
 def is_masked(node: exp.Expression) -> bool:
     return node.sql() in MASKS
 
+def get_from(node: exp.Expression) -> t.Optional[exp.Expression]:
+    if isinstance(node, exp.Select):
+        for key in ('from_', 'from'):
+            if key in node.args:
+                return node.args[key]
+    return None
+
 def is_identifiers_masked(node: exp.Expression) -> bool:
     flags = [v.this == '_' for v in node.find_all(exp.Identifier)]
     return all(flags) and len(list(node.find_all(NONDETERMINISTIC))) == 0 and has_no_star(node)
@@ -192,8 +199,9 @@ def merge_join_subqueries(node: exp.Expression) -> exp.Expression:
 
 def merge_tables(node: exp.Expression) -> exp.Expression:
     if isinstance(node, exp.Select):
-        if node.args.get('from', None):
-            node.args['from'].set('this', merge_join_subqueries(node.args.get('from').this))
+        from_expr = get_from(node)
+        if from_expr:
+            from_expr.set('this', merge_join_subqueries(from_expr.this))
 
         if node.args.get('joins', None):
             joins = []
@@ -202,10 +210,10 @@ def merge_tables(node: exp.Expression) -> exp.Expression:
                     join.set('this', merge_join_subqueries(join.this))
                     joins.append(join)
 
-            if len(joins) > 0 and is_identifiers_masked(node.args.get('from')):
+            if len(joins) > 0 and is_identifiers_masked(from_expr):
                 on_condition = joins[0].args.get('on', None)
                 if not on_condition or is_identifiers_masked(on_condition):
-                    node.args['from'].set('this', joins[0].this)
+                    from_expr.set('this', joins[0].this)
                     joins = joins[1:]
             
             if len(joins) > 0:
