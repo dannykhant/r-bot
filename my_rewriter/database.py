@@ -22,10 +22,12 @@ class DBArgs(object):
             raise NotImplementedError
 
         self.cache = {}
-        with open(os.path.join(config_module.CACHE_PATH, f'{self.dbname}.jsonl'), 'r') as f:
-            for line in f:
-                obj = json.loads(line)
-                self.cache[obj['sql']] = obj
+        cache_file = os.path.join(config_module.CACHE_PATH, f'{self.dbname}.jsonl')
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r') as f:
+                for line in f:
+                    obj = json.loads(line)
+                    self.cache[obj['sql']] = obj
 
 class Database():
 
