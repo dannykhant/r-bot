@@ -6,10 +6,10 @@ import os
 
 import my_rewriter.config as config
 from my_rewriter.database import Database, DBArgs
-from my_rewriter.rewrite import rewrite
+from my_rewriter.rewrite import rewrite, create_tables_from_schema
 
 def execute_rewrite(query: str, schema: str, db_args: DBArgs, rule_seq: t.List[str], rounds: int) -> t.Dict:
-    create_tables = [x for x in schema.split(';') if x.strip() != '']
+    create_tables = create_tables_from_schema(schema)
     res = rewrite(query, create_tables, rule_seq, rounds)
 
     db = Database(db_args)

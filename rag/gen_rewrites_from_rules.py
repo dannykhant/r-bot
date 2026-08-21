@@ -9,7 +9,7 @@ from difflib import Differ
 from copy import deepcopy
 
 from rag.prompts import *
-from my_rewriter.rewrite import get_normal_rules
+from my_rewriter.rewrite import get_normal_rules, create_tables_from_schema
 from my_rewriter.rewrite import match_all_rules, match_normal_rules
 
 calcite_rules: t.Dict[str, str] = {}
@@ -55,7 +55,7 @@ def match_nl_rules(sql: str, schema: str) -> t.List[t.Dict]:
     return rules
 
 def match_calcite_rules(sql: str, schema: str) -> t.List[t.Dict]:
-    create_tables = [x for x in schema.split(';') if x.strip() != '']
+    create_tables = create_tables_from_schema(schema)
     rule_objs = match_all_rules(sql, create_tables)
     
     rules = []

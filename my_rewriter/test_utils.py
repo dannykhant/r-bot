@@ -7,7 +7,7 @@ from my_rewriter.database import DBArgs, Database
 from my_rewriter.rag_retrieve import rag_retrieve, rag_semantics_retrieve, rag_structure_retrieve
 from my_rewriter.rag_rewrite import rag_rewrite
 
-def test(name: str, query: str, schema: str, pg_args: DBArgs, model_args: dict[str, str], docstore: SimpleDocumentStore, LOG_DIR: str, RETRIEVER_TOP_K: int = 10, CASE_BATCH: int = 5, RULE_BATCH: int = 10, REWRITE_ROUNDS: int = 1, index: str = 'hybrid'):
+def test(name: str, query: str, schema: str, pg_args: DBArgs, model_args: dict[str, str], docstore: SimpleDocumentStore, LOG_DIR: str, RETRIEVER_TOP_K: int = 10, CASE_BATCH: int = 5, RULE_BATCH: int = 10, REWRITE_ROUNDS: int = 1, index: str = 'hybrid', output_path: str = None):
     log_filename = f'{LOG_DIR}/{name}.log'
     if os.path.exists(log_filename):
         return
@@ -30,4 +30,7 @@ def test(name: str, query: str, schema: str, pg_args: DBArgs, model_args: dict[s
         res = rag_structure_retrieve(query, schema, docstore, embed_dim=model_args['EMBED_DIM'], RETRIEVER_TOP_K=RETRIEVER_TOP_K)
     else:
         raise ValueError(f'Invalid index type: {index}')
-    rag_rewrite(res['retriever_res'], res['rewrites'], query, schema, pg_args, model_args, CASE_BATCH=CASE_BATCH, RULE_BATCH=RULE_BATCH, REWRITE_ROUNDS=REWRITE_ROUNDS)
+    rewrite_res = rag_rewrite(res['retriever_res'], res['rewrites'], query, schema, pg_args, model_args, CASE_BATCH=CASE_BATCH, RULE_BATCH=RULE_BATCH, REWRITE_ROUNDS=REWRITE_ROUNDS)
+    if output_path and rewrite_res['output_sql'] != 'None':
+        with open(os.path.join(output_path, f'{name}.sql'), 'w') as f:
+            f.write(rewrite_res['output_sql'])

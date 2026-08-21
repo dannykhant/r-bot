@@ -64,3 +64,4 @@ def rag_rewrite(retriever_res: t.List[NodeWithScore], rewrites: t.List[t.Dict], 
     rearranged_rule_seq = model.rearrange_rules(query, suggestions_str, relevant_rules, arranged_rule_seq, used_rules)
     logging.info(f'Rearranged Rule Sequence: {rearranged_rule_seq}')
     rewrite_res = execute_rewrite(query, schema, db_args, rearranged_rule_seq, REWRITE_ROUNDS)
+    return rewrite_res

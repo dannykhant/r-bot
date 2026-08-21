@@ -1,4 +1,5 @@
 import os
+import re
 import typing as t
 import jpype as jp
 import jpype.imports
@@ -33,6 +34,14 @@ def to_java_list(lst: t.List) -> ArrayList:
 
 def to_python_list(lst: ArrayList) -> t.List:
     return list(lst)
+
+def create_tables_from_schema(schema: str) -> t.List[str]:
+    tables = []
+    for stmt in schema.split(';'):
+        s = re.sub(r'--[^\n]*', '', stmt).strip()
+        if s.upper().startswith('CREATE TABLE'):
+            tables.append(s)
+    return tables
 
 def match_normal_rules(query: str, create_tables: t.List[str], database: str = 'PostgreSQL', verbose: bool = True) -> t.List[t.Dict[str, str]]:
     return to_python_list(Rewriter.matchNormalRules(to_java_string(query), to_java_list(create_tables), to_java_string(database), to_java_bool(verbose)))
