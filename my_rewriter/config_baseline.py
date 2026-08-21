@@ -18,6 +18,7 @@ _workload = []
 _llm_model = None
 _llm_platform = None
 _delay = None
+_rpm = None
 _temperature = None
 _top_p = None
 _top_k = None
@@ -84,7 +85,8 @@ def init_llms(model_type: str = '', load_model=True) -> dict[str, str]:
         'SELECT_ARRANGE_RULES_USER_PROMPT': SELECT_ARRANGE_RULES_USER_PROMPT,
         'RAG_SELECT_ARRANGE_RULES_SYS_PROMPT': RAG_SELECT_ARRANGE_RULES_SYS_PROMPT,
         'RAG_SELECT_ARRANGE_RULES_USER_PROMPT': RAG_SELECT_ARRANGE_RULES_USER_PROMPT,
-        'EMBED_DIM': embed_dim
+        'EMBED_DIM': embed_dim,
+        'RPM': _rpm
     }
 
 def init_db_config(database: str) -> dict[str, str]:
@@ -114,6 +116,7 @@ def load_config_system(system_log: str,
     global _max_token_limit
     global _max_out_token_limit
     global _delay
+    global _rpm
     global _last_API_Key
     global _LLM_API_Key
     global _system_log_file
@@ -161,6 +164,11 @@ def load_config_system(system_log: str,
                             _delay = int(conf.get(llm_model).get('delay'))
                         except:
                             _delay = 10
+
+                        try:
+                            _rpm = int(conf.get(llm_model).get('rpm'))
+                        except:
+                            _rpm = None
 
                         try:
                             _temperature = float(conf.get(llm_model).get('temperature'))

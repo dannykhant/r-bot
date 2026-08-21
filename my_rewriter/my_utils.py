@@ -3,6 +3,7 @@ import typing as t
 import re
 import logging
 import time
+import threading
 import openai
 from collections import defaultdict
 import asyncio
@@ -20,9 +21,38 @@ from llama_index.llms.openai import OpenAI
 from my_rewriter.case_rules import case_rules, add_case_rules
 from rag.gen_rewrites_from_rules import calcite_rules
 
+_rpm = None
+_pace_lock = threading.Lock()
+_last_dispatch = 0.0
+
+def set_rpm(rpm):
+    global _rpm
+    _rpm = rpm
+
+def _pace() -> float:
+    if not _rpm or _rpm <= 0:
+        return 0.0
+    global _last_dispatch
+    with _pace_lock:
+        interval = 60.0 / _rpm
+        now = time.monotonic()
+        wait = _last_dispatch + interval - now
+        _last_dispatch = max(now, _last_dispatch + interval)
+        return max(wait, 0.0)
+
+_parse_retry_budget = 30
+
+def _spend_retry() -> bool:
+    global _parse_retry_budget
+    if _parse_retry_budget <= 0:
+        return False
+    _parse_retry_budget -= 1
+    return True
+
 def chat(messages: List[Dict]) -> str:
     chat_messages = [ChatMessage(**m) for m in messages]
     start = time.time()
+    time.sleep(_pace())
     response = Settings.llm.chat(chat_messages)
     logging.debug({'messages': messages, 'response': response.message.content, 'time': time.time() - start})
     return response.message.content
@@ -33,9 +63,10 @@ async def achat(messages: List[Dict], model: LLM = None) -> str:
     chat_messages = [ChatMessage(**m) for m in messages]
     start = time.time()
     try:
+        await asyncio.sleep(_pace())
         response = await model.achat(chat_messages)
     except (ConnectionResetError, openai.APIConnectionError):
-        time.sleep(5)
+        await asyncio.sleep(5 + _pace())
         response = await model.achat(chat_messages)
     logging.debug({'messages': messages, 'response': response.message.content, 'time': time.time() - start})
     return response.message.content
@@ -141,6 +172,7 @@ class MyModel:
     def __init__(self, model_args: t.Dict[str, str]):
         for k, v in model_args.items():
             setattr(self, k, v)
+        set_rpm(model_args.get('RPM'))
     
     async def gen_rewrites_from_cases(self, query: str, rewrite_cases_str: str) -> t.List[str]:
         messages = [{'role': 'system', 'content': self.GEN_CASE_REWRITE_SYS_PROMPT}, {'role': 'user', 'content': self.GEN_CASE_REWRITE_USER_PROMPT.format(sql=query, cases=rewrite_cases_str)}]
@@ -161,7 +193,9 @@ class MyModel:
                         seg = seg[:end_idx]
                     rewrites.append(seg.strip())
                 return rewrites
-        
+            if not _spend_retry():
+                break
+
         logging.warn(f"Failed to generate rewrites from retrieved rewrite cases: {response}")
         return []
 
@@ -182,6 +216,8 @@ class MyModel:
                     return [rule_name.upper() for rule_name in rule_names if rule_name.upper() in calcite_rules]
                 except:
                     pass
+            if not _spend_retry():
+                break
         return []
 
     async def select_rules_from_cases(self, retriever_res: List[NodeWithScore], normal_rules: List[t.Dict[str, str]], explore_rules: List[t.Dict[str, str]]) -> t.List[t.List[t.Dict[str, str]]]:
