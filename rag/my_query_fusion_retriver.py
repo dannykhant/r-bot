@@ -76,15 +76,9 @@ class MyQueryFusionRetriever(BaseRetriever):
         return response.message.content
     
     async def _achat(self, messages: List[Dict]) -> str:
-        chat_messages = [ChatMessage(**m) for m in messages]
-        start = time.time()
-        try:
-            response = await self._llm.achat(chat_messages)
-        except (ConnectionResetError, openai.APIConnectionError):
-            time.sleep(5)
-            response = await self._llm.achat(chat_messages)
-        logging.debug({'messages': messages, 'response': response.message.content, 'time': time.time() - start})
-        return response.message.content
+        # route through the shared paced/retrying wrapper so both pipeline stages share one RPM budget
+        from my_rewriter.my_utils import achat
+        return await achat(messages)
 
     def _get_queries(self, original_query: str) -> List[QueryBundle]:
         rewrites, matched_rules = gen_rewrites_from_rules(sql=original_query, schema=self.schema, fun=self._achat, verbose=self._verbose)

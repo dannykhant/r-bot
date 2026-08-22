@@ -38,6 +38,8 @@ if __name__ == '__main__':
     from config_baseline import _workload
 
     model_args = init_llms(args.llm_model)
+    from my_rewriter.my_utils import set_rpm
+    set_rpm(model_args.get('RPM'))  # pace LLM dispatches (incl. retrieval stage) from the first query on
     pg_config = init_db_config(args.database)
 
     RETRIEVER_TOP_K = args.topk
@@ -54,6 +56,10 @@ if __name__ == '__main__':
     docstore = init_docstore()
 
     for (query, name) in _workload:
+        try:
             test(name, query, schema, pg_args, model_args, docstore, args.log_dir, RETRIEVER_TOP_K=RETRIEVER_TOP_K,
                  CASE_BATCH=CASE_BATCH, RULE_BATCH=RULE_BATCH, REWRITE_ROUNDS=REWRITE_ROUNDS, index=args.index,
                  output_path=args.output_path)
+        except Exception:
+            import logging
+            logging.exception(f'Query {name} failed, continuing with next query')

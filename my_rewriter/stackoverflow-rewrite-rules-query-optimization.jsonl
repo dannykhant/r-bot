@@ -976,3 +976,15 @@
 {"id": "60006043", "answer_id": "60008308", "rules": []}
 {"id": "77947770", "answer_id": "77947936", "rules": ["PROJECT_JOIN_REMOVE", "UNION_TO_DISTINCT", "AGGREGATE_UNION_TRANSPOSE"]}
 {"id": "55595417", "answer_id": "55598512", "rules": ["JOIN_REDUCE_EXPRESSIONS", "FILTER_MERGE", "JOIN_CONDITION_PUSH", "FILTER_REDUCE_EXPRESSIONS", "FILTER_PROJECT_TRANSPOSE", "FILTER_CORRELATE", "JOIN_PUSH_EXPRESSIONS", "FILTER_INTO_JOIN"]}
+{"id": "73549836", "answer_id": "73550104", "rules": []}
+{"id": "3087385", "answer_id": "3087544", "rules": []}
+{"id": "8625036", "answer_id": "8629284", "rules": []}
+{"id": "28966579", "answer_id": "28966628", "rules": []}
+{"id": "54763881", "answer_id": "54771952", "rules": []}
+{"id": "20559390", "answer_id": "20559433", "rules": []}
+{"id": "61762657", "answer_id": "61762708", "rules": []}
+{"id": "44299307", "answer_id": "44299581", "rules": []}
+{"id": "3101769", "answer_id": "3101796", "rules": []}
+{"id": "29214383", "answer_id": "29216098", "rules": []}
+{"id": "63725758", "answer_id": "63725959", "rules": []}
+{"id": "75157785", "answer_id": "75401236", "rules": []}

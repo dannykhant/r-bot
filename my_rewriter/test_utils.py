@@ -9,8 +9,14 @@ from my_rewriter.rag_rewrite import rag_rewrite
 
 def test(name: str, query: str, schema: str, pg_args: DBArgs, model_args: dict[str, str], docstore: SimpleDocumentStore, LOG_DIR: str, RETRIEVER_TOP_K: int = 10, CASE_BATCH: int = 5, RULE_BATCH: int = 10, REWRITE_ROUNDS: int = 1, index: str = 'hybrid', output_path: str = None):
     log_filename = f'{LOG_DIR}/{name}.log'
+    DONE_MARKER = 'QUERY PROCESSING COMPLETE'
+    # Resume support: skip only queries whose previous run finished (marker logged at the end),
+    # so a crashed/partial run gets redone instead of silently skipped.
     if os.path.exists(log_filename):
-        return
+        with open(log_filename, 'r') as f:
+            lines = [l for l in f.readlines() if l.strip()]
+        if lines and DONE_MARKER in lines[-1]:
+            return
     # Remove all handlers associated with the root logger object.
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
@@ -34,3 +40,4 @@ def test(name: str, query: str, schema: str, pg_args: DBArgs, model_args: dict[s
     if output_path and rewrite_res['output_sql'] != 'None':
         with open(os.path.join(output_path, f'{name}.sql'), 'w') as f:
             f.write(rewrite_res['output_sql'])
+    logging.info(DONE_MARKER)

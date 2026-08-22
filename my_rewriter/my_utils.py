@@ -5,8 +5,11 @@ import logging
 import time
 import threading
 import openai
+import random
 from collections import defaultdict
 import asyncio
+
+from google.api_core.exceptions import ResourceExhausted
 
 from llama_index.core.llms import LLM
 from llama_index.core.base.llms.types import ChatMessage
@@ -62,14 +65,21 @@ async def achat(messages: List[Dict], model: LLM = None) -> str:
         model = Settings.llm
     chat_messages = [ChatMessage(**m) for m in messages]
     start = time.time()
-    try:
-        await asyncio.sleep(_pace())
-        response = await model.achat(chat_messages)
-    except (ConnectionResetError, openai.APIConnectionError):
-        await asyncio.sleep(5 + _pace())
-        response = await model.achat(chat_messages)
-    logging.debug({'messages': messages, 'response': response.message.content, 'time': time.time() - start})
-    return response.message.content
+    # ponytail: shared pacer + backoff; single 12 RPM budget across both pipeline stages
+    for attempt in range(6):
+        try:
+            await asyncio.sleep(_pace())
+            response = await model.achat(chat_messages)
+            logging.debug({'messages': messages, 'response': response.message.content, 'time': time.time() - start})
+            return response.message.content
+        except (ConnectionResetError, openai.APIConnectionError):
+            await asyncio.sleep(5)
+        except ResourceExhausted:
+            # jitter de-synchronizes concurrent tasks so retries don't collide as a herd
+            delay = min(300, 15 * 2 ** attempt) * random.uniform(0.8, 1.3)
+            logging.warning(f'Gemini quota exceeded (429), backing off {delay:.0f}s (attempt {attempt + 1}/6)')
+            await asyncio.sleep(delay)
+    raise RuntimeError('LLM call failed after retries')
 
 def get_rule_sets(rule_names: t.List[str]) -> t.Dict[str, t.List[str]]:
     rule_groups_dict  = {}

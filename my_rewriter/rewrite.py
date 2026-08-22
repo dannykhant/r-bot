@@ -43,17 +43,45 @@ def create_tables_from_schema(schema: str) -> t.List[str]:
             tables.append(s)
     return tables
 
+# Calcite reserves words like DATE/TIME/USER, so `b.Date` fails to parse even though
+# Postgres accepts it. Quoting after-dot identifiers is safe here: the Calcite catalog
+# reader is case-insensitive, and generated SQL takes field names from the schema, not
+# the query text.
+# ponytail: naive regex, ignores single-quoted literals except via the alternation below;
+# swap for a real tokenizer if a query ever has '.x' inside a string literal.
+_DOT_IDENT = re.compile(r"'[^']*'|(\.\s*[A-Za-z][A-Za-z0-9_]*)")
+# ponytail: covers literal/parenthesized/simple-operand casts with single-word types
+# (plus precision); multi-word types like `double precision` need a real tokenizer.
+_PG_CAST = re.compile(
+    r"'[^']*'(?!\s*::)|(([A-Za-z0-9_.]+|\([^()]*\)|'[^']*')\s*::\s*[A-Za-z_][A-Za-z0-9_]*(\s*\(\s*\d+\s*(,\s*\d+\s*)?\))?)",
+    re.IGNORECASE)
+
+def calcite_safe_sql(query: str) -> str:
+    # 1) PG-style `x :: type` -> CAST(x AS type); Calcite's parser rejects '::'
+    def cast_repl(m):
+        seg = m.group(1)
+        if seg is None:
+            return m.group(0)
+        expr, typ = seg.split('::', 1)
+        return f'CAST({expr.strip()} AS {typ.strip().upper()})'
+    query = _PG_CAST.sub(cast_repl, query)
+    # 2) quote after-dot identifiers so Calcite-reserved words (e.g. b.Date) parse
+    return _DOT_IDENT.sub(
+        lambda m: m.group(0) if m.group(1) is None
+        else re.sub(r'\.\s*([A-Za-z][A-Za-z0-9_]*)', r'."\1"', m.group(1)),
+        query)
+
 def match_normal_rules(query: str, create_tables: t.List[str], database: str = 'PostgreSQL', verbose: bool = True) -> t.List[t.Dict[str, str]]:
-    return to_python_list(Rewriter.matchNormalRules(to_java_string(query), to_java_list(create_tables), to_java_string(database), to_java_bool(verbose)))
+    return to_python_list(Rewriter.matchNormalRules(to_java_string(calcite_safe_sql(query)), to_java_list(create_tables), to_java_string(database), to_java_bool(verbose)))
 
 def match_explore_rules(query: str, create_tables: t.List[str], database: str = 'PostgreSQL', verbose: bool = True) -> t.List[t.Dict[str, str]]:
-    return to_python_list(Rewriter.matchExploreRules(to_java_string(query), to_java_list(create_tables), to_java_string(database), to_java_bool(verbose)))
+    return to_python_list(Rewriter.matchExploreRules(to_java_string(calcite_safe_sql(query)), to_java_list(create_tables), to_java_string(database), to_java_bool(verbose)))
 
 def match_all_rules(query: str, create_tables: t.List[str], database: str = 'PostgreSQL', verbose: bool = True) -> t.List[t.Dict[str, str]]:
-    return to_python_list(Rewriter.matchAllRules(to_java_string(query), to_java_list(create_tables), to_java_string(database), to_java_bool(verbose)))
+    return to_python_list(Rewriter.matchAllRules(to_java_string(calcite_safe_sql(query)), to_java_list(create_tables), to_java_string(database), to_java_bool(verbose)))
 
 def rewrite(query: str, create_tables: t.List[str], rule_names: t.List[str], rounds: int, database: str = 'PostgreSQL') -> RewriteResult:
-    return Rewriter.rewrite(to_java_string(query), to_java_list(create_tables), to_java_list(rule_names), to_java_int(rounds), to_java_string(database))
+    return Rewriter.rewrite(to_java_string(calcite_safe_sql(query)), to_java_list(create_tables), to_java_list(rule_names), to_java_int(rounds), to_java_string(database))
 
 def learned_rewrite(query: str, create_tables: t.List[str], budget: int, host: str, port: str, user: str, password: str, dbname: str) -> JSONObject:
     return LearnedRewriter.learnedRewrite(to_java_string(query), to_java_list(create_tables), to_java_int(budget), to_java_string(host), to_java_string(port), to_java_string(user), to_java_string(password), to_java_string(dbname))

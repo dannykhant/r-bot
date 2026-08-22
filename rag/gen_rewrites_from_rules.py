@@ -83,7 +83,7 @@ async def gen_rewrites_from_nl_rules(sql: str, matched_rules: t.List[t.Dict[str,
         if delimiter_idx != -1:
             step2 = response[delimiter_idx + len(delimiter):]
 
-            segs = re.split(r'Query Rewrite (\d+):\s*"""', step2)
+            segs = re.split(r'Query Rewrite (?:Rule )?(\d+):\s*"""', step2)
             rewrites = []
             for i in range(1, len(segs), 2):
                 idx = segs[i]
